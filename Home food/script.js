@@ -189,6 +189,202 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // ===== AVAILABLE TODAY - DYNAMIC GENERATION =====
+  const availableIconMap = {
+    // Morning icons
+    'Pongal': 'fa-bowl-rice',
+    'Rava Idly': 'fa-circle',
+    'Idly': 'fa-circle',
+    'Wheat Upma': 'fa-wheat-awn',
+    'Aval': 'fa-wheat-awn',
+    'Paniyaram': 'fa-cookie',
+    'Poori': 'fa-bread-slice',
+    // Lunch icons
+    'Rice': 'fa-bowl-food',
+    'Biryani': 'fa-pepper-hot',
+    'Variety Rice': 'fa-bowl-rice',
+    'Chicken': 'fa-drumstick-bite',
+    'Fish': 'fa-fish',
+    // Dinner icons
+    'Dosa': 'fa-plate-wheat',
+    'Sevai': 'fa-plate-wheat',
+    'Chapatti': 'fa-bread-slice',
+    'Uthappam': 'fa-circle',
+    'Aapam': 'fa-cookie',
+    'Ada Dosa': 'fa-cookie',
+  };
+
+  const availableTagMap = {
+    'Pongal': 'Comfort Food',
+    'Rava Idly': 'South Indian Classic',
+    'Idly': 'South Indian Classic',
+    'Wheat Upma': 'Healthy Choice',
+    'Aval': 'Healthy Choice',
+    'Paniyaram': 'Crispy Delight',
+    'Poori': 'Hot & Fresh',
+    'Rice': 'Full Meals',
+    'Biryani': 'Special Biryani',
+    'Variety Rice': "Chef's Choice",
+    'Chicken': 'Non-Veg Special',
+    'Fish': 'Non-Veg Special',
+    'Dosa': 'Crispy & Delicious',
+    'Sevai': 'Light & Tasty',
+    'Chapatti': 'Soft & Warm',
+    'Uthappam': 'South Indian Classic',
+    'Aapam': 'Kerala Style',
+    'Ada Dosa': 'Traditional Recipe',
+  };
+
+  function getIconForItem(itemName) {
+    for (const [key, icon] of Object.entries(availableIconMap)) {
+      if (itemName.toLowerCase().includes(key.toLowerCase())) return icon;
+    }
+    return 'fa-utensils';
+  }
+
+  function getTagForItem(itemName) {
+    for (const [key, tag] of Object.entries(availableTagMap)) {
+      if (itemName.toLowerCase().includes(key.toLowerCase())) return tag;
+    }
+    return 'Fresh & Homemade';
+  }
+
+  function buildAvailableToday() {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const today = new Date();
+    const dayName = days[today.getDay()];
+    const grid = document.getElementById('available-grid');
+    const sundayMsg = document.getElementById('avl-sunday-msg');
+    const filtersContainer = document.querySelector('.available-filters');
+
+    if (!grid) return;
+
+    // Sunday - rest day
+    if (dayName === 'Sunday') {
+      grid.style.display = 'none';
+      if (filtersContainer) filtersContainer.style.display = 'none';
+      if (sundayMsg) sundayMsg.style.display = 'block';
+      return;
+    }
+
+    const categories = [
+      {
+        key: 'morning',
+        label: 'Morning Available',
+        cssClass: 'morning',
+        icon: 'fa-sun',
+        filterKey: 'avl-morning'
+      },
+      {
+        key: 'lunch',
+        label: 'Lunch Available',
+        cssClass: 'lunch',
+        icon: 'fa-cloud-sun',
+        filterKey: 'avl-lunch'
+      },
+      {
+        key: 'dinner',
+        label: 'Dinner Available',
+        cssClass: 'dinner',
+        icon: 'fa-moon',
+        filterKey: 'avl-dinner'
+      }
+    ];
+
+    let html = '';
+
+    categories.forEach(cat => {
+      const menuStr = menuData[cat.key][dayName] || '';
+      if (!menuStr) return;
+
+      // Split menu items by comma
+      const items = menuStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+      let itemsHtml = '';
+      items.forEach(item => {
+        const icon = getIconForItem(item);
+        const tag = getTagForItem(item);
+        itemsHtml += `
+            <div class="avl-item">
+              <div class="avl-item-icon"><i class="fas ${icon}"></i></div>
+              <div class="avl-item-info">
+                <span class="avl-item-name">${item}</span>
+                <span class="avl-item-tag">${tag}</span>
+              </div>
+              <div class="avl-item-status available"><i class="fas fa-check-circle"></i></div>
+            </div>`;
+      });
+
+      html += `
+        <div class="available-category-card animate-on-scroll" data-category="${cat.filterKey}">
+          <div class="avl-category-header ${cat.cssClass}">
+            <div class="avl-category-icon">
+              <i class="fas ${cat.icon}"></i>
+            </div>
+            <h3 class="avl-category-title">${cat.label}</h3>
+            <span class="avl-status-badge"><i class="fas fa-circle"></i> Available Now</span>
+          </div>
+          <div class="avl-items-list">${itemsHtml}
+          </div>
+        </div>`;
+    });
+
+    grid.innerHTML = html;
+
+    // Re-observe newly generated cards for scroll animation
+    grid.querySelectorAll('.animate-on-scroll').forEach(el => {
+      observer.observe(el);
+    });
+
+    // Re-bind filter buttons after dynamic content
+    bindAvailableFilters();
+  }
+
+  function bindAvailableFilters() {
+    const filterBtns = document.querySelectorAll('.available-filter-btn');
+    const cards = document.querySelectorAll('.available-category-card');
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filter = btn.dataset.filter;
+
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        cards.forEach(card => {
+          if (filter === 'all' || card.dataset.category === filter) {
+            card.classList.remove('hidden');
+            card.classList.remove('visible');
+            setTimeout(() => {
+              if (isElementInViewport(card)) {
+                card.classList.add('visible');
+              }
+            }, 50);
+          } else {
+            card.classList.add('hidden');
+          }
+        });
+      });
+    });
+  }
+
+  // ===== AVAILABLE - LAST UPDATED TIME =====
+  function setAvailableUpdatedTime() {
+    const el = document.getElementById('avl-updated-time');
+    if (!el) return;
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    const displayMinutes = minutes < 10 ? '0' + minutes : minutes;
+
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const dateStr = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}, ${displayHours}:${displayMinutes} ${ampm}`;
+    el.textContent = dateStr;
+  }
+  setAvailableUpdatedTime();
+
   // ===== SCROLL ANIMATIONS (Intersection Observer) =====
   function isElementInViewport(el) {
     const rect = el.getBoundingClientRect();
@@ -219,6 +415,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.animate-on-scroll').forEach(el => {
     observer.observe(el);
   });
+
+  // Build available today section dynamically (must be after observer is created)
+  buildAvailableToday();
 
   // ===== COUNTER ANIMATION =====
   function animateCounters() {
