@@ -277,24 +277,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ===== SMOOTH SCROLL FOR ANCHOR LINKS =====
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-      const href = this.getAttribute('href');
-      if (href === '#') return;
-      
-      e.preventDefault();
-      const target = document.querySelector(href);
-      if (target) {
-        const headerOffset = 80;
-        const elementPosition = target.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.scrollY - headerOffset;
+  anchor.addEventListener('click', function (e) {
+    const href = this.getAttribute('href');
 
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: 'smooth'
-        });
-      }
+    // ✅ Only handle proper internal links
+    if (!href || href === '#' || !href.startsWith('#')) return;
+
+    const target = document.querySelector(href);
+    if (!target) return;
+
+    e.preventDefault();
+
+    const headerOffset = 80;
+    const elementPosition = target.getBoundingClientRect().top;
+    const offsetPosition = elementPosition + window.scrollY - headerOffset;
+
+    window.scrollTo({
+      top: offsetPosition,
+      behavior: 'smooth'
     });
   });
+});
 
   // ===== INITIAL SCROLL CHECK =====
   onScroll();
